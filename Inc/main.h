@@ -58,10 +58,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define JoyStick_Buttons_Pin GPIO_PIN_0
-#define JoyStick_Buttons_GPIO_Port GPIOA
+#define VRx_Pin GPIO_PIN_0
+#define VRx_GPIO_Port GPIOA
+#define VRy_Pin GPIO_PIN_1
+#define VRy_GPIO_Port GPIOA
 #define SPI1_IRQ_Pin GPIO_PIN_2
 #define SPI1_IRQ_GPIO_Port GPIOA
+#define SPI1_CE_Pin GPIO_PIN_3
+#define SPI1_CE_GPIO_Port GPIOA
 #define SPI1_CSN_Pin GPIO_PIN_4
 #define SPI1_CSN_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
