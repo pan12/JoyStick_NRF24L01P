@@ -1,0 +1,27 @@
+--cpu Cortex-M3
+"joystick_nrf24l01p\startup_stm32f103xb.o"
+"joystick_nrf24l01p\nrf24l01.o"
+"joystick_nrf24l01p\main.o"
+"joystick_nrf24l01p\stm32f1xx_it.o"
+"joystick_nrf24l01p\stm32f1xx_hal_msp.o"
+"joystick_nrf24l01p\stm32f1xx_hal_gpio_ex.o"
+"joystick_nrf24l01p\stm32f1xx_hal_adc.o"
+"joystick_nrf24l01p\stm32f1xx_hal_adc_ex.o"
+"joystick_nrf24l01p\stm32f1xx_hal.o"
+"joystick_nrf24l01p\stm32f1xx_hal_rcc.o"
+"joystick_nrf24l01p\stm32f1xx_hal_rcc_ex.o"
+"joystick_nrf24l01p\stm32f1xx_hal_gpio.o"
+"joystick_nrf24l01p\stm32f1xx_hal_dma.o"
+"joystick_nrf24l01p\stm32f1xx_hal_cortex.o"
+"joystick_nrf24l01p\stm32f1xx_hal_pwr.o"
+"joystick_nrf24l01p\stm32f1xx_hal_flash.o"
+"joystick_nrf24l01p\stm32f1xx_hal_flash_ex.o"
+"joystick_nrf24l01p\stm32f1xx_hal_exti.o"
+"joystick_nrf24l01p\stm32f1xx_hal_spi.o"
+"joystick_nrf24l01p\stm32f1xx_hal_tim.o"
+"joystick_nrf24l01p\stm32f1xx_hal_tim_ex.o"
+"joystick_nrf24l01p\system_stm32f1xx.o"
+--library_type=microlib --strict --scatter "JoyStick_NRF24L01P\JoyStick_NRF24L01P.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "JoyStick_NRF24L01P.map" -o JoyStick_NRF24L01P\JoyStick_NRF24L01P.axf

@@ -23,12 +23,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "nrf24l01.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef struct
+{
+	int8_t	SpeedL;
+	int8_t	SpeedR;
+} Packet;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -47,6 +51,9 @@ SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
+Packet data;
+int16_t dataX;
+int16_t dataY;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,7 +102,21 @@ int main(void)
   MX_ADC1_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+	const uint64_t pipe1 = 0xE8E8F0F0E2LL;
 
+
+  uint8_t res = isChipConnected(); // провер�?ет подключён ли модуль к SPI
+	NRF_Init();
+	 ////////////// SET ////////////////
+  enableAckPayload();
+  //setAutoAck(false);
+  setPayloadSize(32);
+  setChannel(26);
+  openWritingPipe(pipe1);
+  ///////////////////////////////////
+	
+	maskIRQ(true, true, true); // ма�?кируем прерывани�?
+	HAL_ADCEx_Calibration_Start(&hadc1);
   /* USER CODE END 2 */
  
  
@@ -104,6 +125,33 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+		HAL_ADCEx_InjectedStart(&hadc1); // запу�?каем опро�? инжект. каналов
+		HAL_ADC_PollForConversion(&hadc1,100); // ждём окончани�?
+		
+		dataX = SET_Point(HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1));
+		dataY = SET_Point(HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2));
+		if((dataY > 20) || (dataY < -20))
+		{
+				data.SpeedL = dataY;
+				data.SpeedR = dataY;
+		}
+		else
+		{
+			if((dataX > 20) || (dataX < -1*20))
+			{
+				data.SpeedL = dataX;
+				data.SpeedR = -dataX;
+			}
+			else
+			{
+				data.SpeedL = 0;
+				data.SpeedR = 0;
+			}
+		}
+	  uint8_t remsg = 0; // переменна�? дл�? приёма байта пришедшего вме�?те �? ответом
+	  write(&data, 2*sizeof(uint8_t)); // отправл�?ем данные
+
+	  HAL_Delay(100);		
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -164,7 +212,7 @@ static void MX_ADC1_Init(void)
 
   /* USER CODE END ADC1_Init 0 */
 
-  ADC_ChannelConfTypeDef sConfig = {0};
+  ADC_InjectionConfTypeDef sConfigInjected = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
 
@@ -172,8 +220,8 @@ static void MX_ADC1_Init(void)
   /** Common config 
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
@@ -182,12 +230,25 @@ static void MX_ADC1_Init(void)
   {
     Error_Handler();
   }
-  /** Configure Regular Channel 
+  /** Configure Injected Channel 
   */
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_13CYCLES_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_0;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
+  sConfigInjected.InjectedNbrOfConversion = 2;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_7CYCLES_5;
+  sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
+  sConfigInjected.AutoInjectedConv = DISABLE;
+  sConfigInjected.InjectedDiscontinuousConvMode = DISABLE;
+  sConfigInjected.InjectedOffset = 0;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Injected Channel 
+  */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
+  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
+  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
   }
@@ -248,12 +309,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3|SPI1_CSN_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : JoyStick_Buttons_Pin */
-  GPIO_InitStruct.Pin = JoyStick_Buttons_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  HAL_GPIO_Init(JoyStick_Buttons_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(GPIOA, SPI1_CE_Pin|SPI1_CSN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : SPI1_IRQ_Pin */
   GPIO_InitStruct.Pin = SPI1_IRQ_Pin;
@@ -261,8 +317,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SPI1_IRQ_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA3 SPI1_CSN_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|SPI1_CSN_Pin;
+  /*Configure GPIO pins : SPI1_CE_Pin SPI1_CSN_Pin */
+  GPIO_InitStruct.Pin = SPI1_CE_Pin|SPI1_CSN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -271,7 +327,20 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+int8_t SET_Point (uint32_t Data)
+{
+	if(Data>3700)
+		return 25;
+	if(Data<2000)
+		return -25;
+	return 0;
+}
+//void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc1)
+//{
+//	dataX = SET_Point(HAL_ADCEx_InjectedGetValue(hadc1, ADC_INJECTED_RANK_1));
+//	dataY = SET_Point(HAL_ADCEx_InjectedGetValue(hadc1, ADC_INJECTED_RANK_2));
+//	HAL_ADCEx_InjectedStart_IT(hadc1);
+//}
 /* USER CODE END 4 */
 
 /**
