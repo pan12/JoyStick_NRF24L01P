@@ -116,6 +116,7 @@ int main(void)
   ///////////////////////////////////
 	
 	maskIRQ(true, true, true); // ма�?кируем прерывани�?
+	HAL_ADCEx_Calibration_Start(&hadc1);
   /* USER CODE END 2 */
  
  
@@ -124,6 +125,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+		HAL_ADCEx_InjectedStart(&hadc1); // запу�?каем опро�? инжект. каналов
+		HAL_ADC_PollForConversion(&hadc1,100); // ждём окончани�?
+		
+		dataX = SET_Point(HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1));
+		dataY = SET_Point(HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2));
 		if((dataY > 20) || (dataY < -20))
 		{
 				data.SpeedL = dataY;
@@ -240,6 +246,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Injected Channel 
   */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
@@ -322,18 +329,18 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 int8_t SET_Point (uint32_t Data)
 {
-	if(Data>3500)
-		return 20;
+	if(Data>3700)
+		return 25;
 	if(Data<2000)
-		return -20;
+		return -25;
 	return 0;
 }
-void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc1)
-{
-	dataX = SET_Point(HAL_ADCEx_InjectedGetValue(hadc1, ADC_INJECTED_RANK_1));
-	dataY = SET_Point(HAL_ADCEx_InjectedGetValue(hadc1, ADC_INJECTED_RANK_2));
-	HAL_ADCEx_InjectedStart_IT(hadc1);
-}
+//void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc1)
+//{
+//	dataX = SET_Point(HAL_ADCEx_InjectedGetValue(hadc1, ADC_INJECTED_RANK_1));
+//	dataY = SET_Point(HAL_ADCEx_InjectedGetValue(hadc1, ADC_INJECTED_RANK_2));
+//	HAL_ADCEx_InjectedStart_IT(hadc1);
+//}
 /* USER CODE END 4 */
 
 /**

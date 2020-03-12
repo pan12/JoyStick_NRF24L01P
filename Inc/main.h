@@ -54,7 +54,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+int8_t SET_Point (uint32_t Data);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
